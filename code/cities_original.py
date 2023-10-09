@@ -58,12 +58,14 @@ if __name__ == '__main__':
 
     opts = parseOptions()
     path = '../csv_data/'
-    start_cols = ['City', 'Region',
-                    'Latitude', 'Longitude', 'tif_count']
+    start_cols = ['City', 'Region', 'Longitude',
+                    'Latitude','tif_count_2000',
+                    'tif_count_2021', 'Area']
     cities = fnc.get_cities(path)   # Get list of cities with their features.
     cities = cities.loc[:,start_cols + list(cities.columns.drop(start_cols))]
-    features = cities.columns.drop(['City', 'Region', 'Latitude', 'Longitude', 
-                                    'tif_count'])
+    features = cities.columns.drop(['City', 'Region', 'Longitude',
+                                    'Latitude','tif_count_2000',
+                                    'tif_count_2021'])
     if opts.elbow:
         # Calculates WSS and plots K-Means Elbow plot
         # Only works if cluster data has already been output already to CSV

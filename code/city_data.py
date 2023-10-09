@@ -126,7 +126,7 @@ if __name__ == '__main__':
             # get all cities worldclim data
             df = etd.worldclimCityData(gdf)
             df = pd.merge(cities,df,left_index=True,right_index=True)
-            df.to_csv(data_path + 'csv_data/worldclim_cities.csv',index=False)
+            df.to_csv(data_path + 'csv_data/worldclim_cities_30sec.csv',index=False)
         if opts.paleoclim:
             # get all cities paleoclim data
             df = etd.paleoclimCityData(gdf)

@@ -24,17 +24,17 @@ def get_cities(path):
             if first_file:
                 # Initialize the cities df
                 cities = pd.read_csv(path + f)
-               # if not 'landscan' in f:
+                if not 'landscan' in f:
                     # Only using the Latitude and Longitude provided in the Landscan csv.
-                  #  cities = cities.drop(['Region', 'Latitude', 'Longitude', 'tif_count'],axis=1)
+                    cities = cities.drop(['Region', 'Latitude', 'Longitude', 'tif_count'],axis=1)
                 first_file = False
-           # else:
+            else:
                 # add to the cities df by merging with the new csv
-              #  new_csv = pd.read_csv(path + f)
-               # if not 'landscan' in f:
+                new_csv = pd.read_csv(path + f)
+                if not 'landscan' in f:
                     # Only using the Latitude and Longitude provided in the Landscan csv.
-                   # new_csv = new_csv.drop(['Region', 'Latitude', 'Longitude', 'tif_count'],axis=1)
-               # cities = pd.merge(cities, new_csv,on='City')
+                    new_csv = new_csv.drop(['Region', 'Latitude', 'Longitude', 'tif_count'],axis=1)
+                cities = pd.merge(cities, new_csv,on='City')
     return cities
 
 def cluster(df, features, num_clusters = 5, method = 'kmeans'):
@@ -326,19 +326,15 @@ def plot_dists_and_neighbors(cities, centroids, scaled):
     regs = dict.fromkeys(np.sort(np.unique(cities['Region'])), 0)
     for i, r in enumerate(np.unique(cities['Region'])): regs[r] = i
     clust = dict.fromkeys(np.sort(np.unique(cities['Cluster'])), 0)
-    #print(f"cen length = {len(centroids)}")
     for i, c in enumerate(np.unique(cities['Cluster'])): clust[c] = i
-    print(clust)
-    rev_clust = {v: k for k, v in clust.items()}
-    print(rev_clust)
     for i, row in scaled.drop('Cluster',axis=1).iterrows():
         city_dists[i, :] = np.sqrt(np.sum((row.values - scaled.drop('Cluster',axis=1).values) ** 2, axis=1))
         region_clusters[clust[cities['Cluster'].iloc[i]], regs[cities['Region'].iloc[i]]] += 1
     for j, c in centroids.iterrows():
         cent_dists[j, :] = np.sqrt(np.sum((c.values - centroids.values) ** 2, axis=1))
-        wcss[j] += sum_of_squares(c.values.T, scaled[scaled['Cluster'] == rev_clust[j]].drop('Cluster',axis=1).values)
-        wcss[j] = wcss[j] / len(scaled[scaled['Cluster'] == rev_clust[j]])
-        for i, row in scaled[scaled['Cluster'] == rev_clust[j]].iterrows():
+        wcss[j] += sum_of_squares(c.values.T, scaled[scaled['Cluster'] == j+1].drop('Cluster',axis=1).values)
+        wcss[j] = wcss[j] / len(scaled[scaled['Cluster'] == j+1])
+        for i, row in scaled[scaled['Cluster'] == j+1].iterrows():
             min_dist = 99999999999
             for k, c2 in centroids.iterrows():
                 if j == k:
@@ -348,8 +344,8 @@ def plot_dists_and_neighbors(cities, centroids, scaled):
                     min_dist = d
                     neighbors[i] = k+1
             ncss[j] += min_dist**2
-        ncss[j] = ncss[j] / len(scaled[scaled['Cluster'] == rev_clust[j]])
-        count[j] = len(scaled[scaled['Cluster'] == rev_clust[j]])
+        ncss[j] = ncss[j] / len(scaled[scaled['Cluster'] == j+1])
+        count[j] = len(scaled[scaled['Cluster'] == j+1])
     pd.merge(cities[['City', 'Region', 'Cluster']], pd.DataFrame(city_dists, columns=cities['City']),
              left_index=True,right_index=True).to_csv('../cluster_data/feature_dists.csv',index=False)
     pd.DataFrame(cent_dists, index=np.sort(cities['Cluster'].unique()), columns=np.sort(cities['Cluster'].unique())
@@ -358,7 +354,6 @@ def plot_dists_and_neighbors(cities, centroids, scaled):
                  columns=['Count', 'Within Cluster', 'Neighbor Cluster']).to_csv('../cluster_data/sum_of_square_dists.csv', index=True)
     pd.DataFrame(region_clusters, index=np.sort(cities['Cluster'].unique()), columns=np.sort(cities['Region'].unique())
                  ).to_csv('../cluster_data/region_clusters.csv',index=True)
-    #cities.replace({'Cluster' : clust})
     return
 
 def elbow_method(df, features, k = -1):
@@ -369,7 +364,6 @@ def elbow_method(df, features, k = -1):
     city_files = []
     cen_files = []
     num_clusters = []
-    print(df)
     for f in files:
         city = re.search(r"^cities_\d+\.csv$", f)
         cen = re.search(r"^centroids_\d+\.csv$", f)
@@ -390,21 +384,16 @@ def elbow_method(df, features, k = -1):
     num_clusters.sort()
     scaler = preprocessing.StandardScaler().fit(df[features].values)
     scaled = pd.DataFrame(scaler.transform(df[features].values), columns=features)  # Scaled values to compare against centroids
-    
     # Calculate within cluster Sum of Squares
     elb = np.zeros(shape=(len(num_clusters)))
     for i, clusters in enumerate(num_clusters):
         cities = pd.read_csv(in_path + 'cities_' + str(clusters) + '.csv')
-        clust = dict.fromkeys(np.sort(np.unique(cities['Cluster'])), 0)
-        #print(f"cen length = {len(centroids)}")
-        for l, c in enumerate(np.unique(cities['Cluster'])): clust[c] = l
-        rev_clust = {value: key for key, value in clust.items()}
         scaled['Cluster'] = cities['Cluster']
         centroids = pd.read_csv(in_path + 'centroids_' + str(clusters) + '.csv')
         if clusters == k:
             plot_dists_and_neighbors(cities, centroids, scaled)
         for j, c in centroids.iterrows():
-            elb[i] += sum_of_squares(c.values.T, scaled[scaled['Cluster'] == rev_clust[j]].drop('Cluster',axis=1).values)
+            elb[i] += sum_of_squares(c.values.T, scaled[scaled['Cluster'] == j+1].drop('Cluster',axis=1).values)
         elb[i] = elb[i] / clusters
     plt.figure()
     elb = elb / 1000

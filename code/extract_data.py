@@ -16,7 +16,7 @@ import time
 import pandas as pd
 import geopandas as gpd
 import numpy as np
-import gdal
+from osgeo import gdal
 import matplotlib.pyplot as plt
 from shapely.geometry.polygon import Polygon
 from shapely.geometry.polygon import Point
