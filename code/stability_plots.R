@@ -3,7 +3,6 @@
 library(ggplot2)
 library(tidyverse)
 
-
 summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
                       conf.interval=.95, .drop=TRUE) {
   library(plyr)
@@ -41,6 +40,8 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
 }
 
 
+
+
 # read in the dataset
 files <- list.files(path = "../cluster_data/", pattern = "cities_[0-9]*")
 files <- str_sort(files, numeric = TRUE)
@@ -75,8 +76,8 @@ se <- summarySE(avg, measurevar="Stability", groupvars=c("type","num_clusters"),
 se$num_clusters <- as.integer(se$num_clusters)
 se <- se[order(se$num_clusters, decreasing = F), ]
 se$is_na <- "No"
-se[which(se$num_clusters %in% has_na$num_clusters
-         & se$type %in% has_na$type),]$is_na <- "Yes"
+se$is_na[which(se$num_clusters %in% has_na$num_clusters
+         & se$type %in% has_na$type)] <- "Yes"
 se$is_na <- factor(se$is_na)
 pd <- position_dodge(0.5)
 plt1 <- ggplot(se, aes(x=num_clusters,y=Stability, group=type, color=type)) + 
